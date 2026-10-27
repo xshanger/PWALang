@@ -1,7 +1,19 @@
 #[derive(Debug, PartialEq)]
 pub struct Simulation {
     pub name: String,
-    pub properties: Vec<Property>,
+    pub statements: Vec<Statement>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Statement {
+    Property(Property),
+    Block(Block),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Block {
+    pub name: String,
+    pub statements: Vec<Statement>,
 }
 
 #[derive(Debug, PartialEq)]

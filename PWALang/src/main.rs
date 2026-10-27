@@ -7,11 +7,15 @@ use parser::parse;
 
 fn main() {
     let source = r#"
-        simulation "PWFA_Test" {
+    simulation "PWFA_Test" {
+        plasma {
             density = 1e17;
-            description = "Baseline plasma";
         }
-    "#;
+
+        beam {
+            energy = 1.0;
+        }
+    }"#;
 
     println!("PWALang Compiler v0.1.0");
     println!("------------------------");

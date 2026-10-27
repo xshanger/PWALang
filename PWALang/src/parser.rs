@@ -1,4 +1,4 @@
-use crate::ast::{Property, Simulation, Value};
+use crate::ast::{Block, Property, Simulation, Statement, Value};
 use crate::lexer::Token;
 
 pub fn parse(tokens: &[Token]) -> Result<Simulation, String> {
@@ -20,6 +20,10 @@ impl<'a> Parser<'a> {
         self.tokens.get(self.position)
     }
 
+    fn peek(&self) -> Option<&'a Token> {
+        self.tokens.get(self.position + 1)
+    }
+
     fn advance(&mut self) {
         self.position += 1;
     }
@@ -31,6 +35,17 @@ impl<'a> Parser<'a> {
                 Ok(())
             }
             other => Err(format!("Expected {expected:?}, found {other:?}")),
+        }
+    }
+
+    fn parse_identifier(&mut self) -> Result<String, String> {
+        match self.current() {
+            Some(Token::Identifier(value)) => {
+                let name = value.clone();
+                self.advance();
+                Ok(name)
+            }
+            other => Err(format!("Expected identifier, found {other:?}")),
         }
     }
 
@@ -50,15 +65,7 @@ impl<'a> Parser<'a> {
 
         self.expect(&Token::LeftBrace)?;
 
-        let mut properties = Vec::new();
-
-        while self.current() != Some(&Token::RightBrace) {
-            if self.current().is_none() {
-                return Err("Unclosed simulation block".into());
-            }
-
-            properties.push(self.parse_property()?);
-        }
+        let statements = self.parse_statements()?;
 
         self.expect(&Token::RightBrace)?;
 
@@ -66,20 +73,59 @@ impl<'a> Parser<'a> {
             return Err("Unexpected tokens after simulation".into());
         }
 
-        Ok(Simulation { name, properties })
+        Ok(Simulation { name, statements })
+    }
+
+    fn parse_statements(&mut self) -> Result<Vec<Statement>, String> {
+        let mut statements = Vec::new();
+
+        loop {
+            match self.current() {
+                Some(Token::RightBrace) => break,
+
+                None => {
+                    return Err("Unclosed block".into());
+                }
+
+                Some(Token::Identifier(_)) => {
+                    statements.push(self.parse_statement()?);
+                }
+
+                other => {
+                    return Err(format!("Expected statement, found {other:?}"));
+                }
+            }
+        }
+
+        Ok(statements)
+    }
+
+    fn parse_statement(&mut self) -> Result<Statement, String> {
+        match self.peek() {
+            Some(Token::Equals) => Ok(Statement::Property(self.parse_property()?)),
+
+            Some(Token::LeftBrace) => Ok(Statement::Block(self.parse_block()?)),
+
+            other => Err(format!(
+                "Expected '=' or '{{' after identifier, found {other:?}"
+            )),
+        }
+    }
+
+    fn parse_block(&mut self) -> Result<Block, String> {
+        let name = self.parse_identifier()?;
+
+        self.expect(&Token::LeftBrace)?;
+
+        let statements = self.parse_statements()?;
+
+        self.expect(&Token::RightBrace)?;
+
+        Ok(Block { name, statements })
     }
 
     fn parse_property(&mut self) -> Result<Property, String> {
-        let name = match self.current() {
-            Some(Token::Identifier(value)) => {
-                let name = value.clone();
-                self.advance();
-                name
-            }
-            other => {
-                return Err(format!("Expected property name, found {other:?}"));
-            }
-        };
+        let name = self.parse_identifier()?;
 
         self.expect(&Token::Equals)?;
 
@@ -89,11 +135,13 @@ impl<'a> Parser<'a> {
                 self.advance();
                 result
             }
+
             Some(Token::StringLiteral(text)) => {
                 let result = Value::String(text.clone());
                 self.advance();
                 result
             }
+
             other => {
                 return Err(format!("Expected property value, found {other:?}"));
             }
@@ -110,42 +158,139 @@ mod tests {
     use super::*;
     use crate::lexer::tokenize;
 
+    fn parse_source(source: &str) -> Result<Simulation, String> {
+        let tokens = tokenize(source)?;
+        parse(&tokens)
+    }
+
     #[test]
     fn parses_simulation() {
-        let source = r#"
+        let simulation = parse_source(
+            r#"
             simulation "PWFA_Test" {
                 density = 1e17;
                 description = "Baseline plasma";
             }
-        "#;
-
-        let tokens = tokenize(source).unwrap();
-        let simulation = parse(&tokens).unwrap();
+            "#,
+        )
+        .unwrap();
 
         assert_eq!(simulation.name, "PWFA_Test");
-        assert_eq!(simulation.properties.len(), 2);
-        assert_eq!(simulation.properties[0].name, "density");
-        assert_eq!(simulation.properties[0].value, Value::Number(1e17));
+        assert_eq!(simulation.statements.len(), 2);
+
+        assert_eq!(
+            simulation.statements[0],
+            Statement::Property(Property {
+                name: "density".into(),
+                value: Value::Number(1e17),
+            })
+        );
+    }
+
+    #[test]
+    fn parses_plasma_and_beam_blocks() {
+        let simulation = parse_source(
+            r#"
+            simulation "PWFA_Test" {
+                plasma {
+                    density = 1e17;
+                }
+
+                beam {
+                    energy = 1.0;
+                }
+            }
+            "#,
+        )
+        .unwrap();
+
+        assert_eq!(simulation.name, "PWFA_Test");
+        assert_eq!(simulation.statements.len(), 2);
+
+        assert_eq!(
+            simulation.statements[0],
+            Statement::Block(Block {
+                name: "plasma".into(),
+                statements: vec![Statement::Property(Property {
+                    name: "density".into(),
+                    value: Value::Number(1e17),
+                })],
+            })
+        );
+
+        assert_eq!(
+            simulation.statements[1],
+            Statement::Block(Block {
+                name: "beam".into(),
+                statements: vec![Statement::Property(Property {
+                    name: "energy".into(),
+                    value: Value::Number(1.0),
+                })],
+            })
+        );
+    }
+
+    #[test]
+    fn parses_deeply_nested_blocks() {
+        let simulation = parse_source(
+            r#"
+            simulation "Nested" {
+                plasma {
+                    profile {
+                        density = 1e17;
+                    }
+                }
+            }
+            "#,
+        )
+        .unwrap();
+
+        assert_eq!(simulation.statements.len(), 1);
+
+        let Statement::Block(plasma) = &simulation.statements[0] else {
+            panic!("Expected plasma block");
+        };
+
+        let Statement::Block(profile) = &plasma.statements[0] else {
+            panic!("Expected profile block");
+        };
+
+        assert_eq!(profile.name, "profile");
+        assert_eq!(profile.statements.len(), 1);
     }
 
     #[test]
     fn rejects_missing_semicolon() {
-        let tokens = tokenize(r#"simulation "Test" { density = 1e17 }"#).unwrap();
-
-        assert!(parse(&tokens).is_err());
+        assert!(parse_source(r#"simulation "Test" { density = 1e17 }"#).is_err());
     }
 
     #[test]
     fn rejects_unclosed_block() {
-        let tokens = tokenize(r#"simulation "Test" { density = 1e17;"#).unwrap();
-
-        assert!(parse(&tokens).is_err());
+        assert!(parse_source(r#"simulation "Test" { density = 1e17;"#).is_err());
     }
 
     #[test]
     fn rejects_trailing_tokens() {
-        let tokens = tokenize(r#"simulation "Test" {} extra"#).unwrap();
+        assert!(parse_source(r#"simulation "Test" {} extra"#).is_err());
+    }
 
-        assert!(parse(&tokens).is_err());
+    #[test]
+    fn rejects_unclosed_nested_block() {
+        assert!(
+            parse_source(
+                r#"
+                simulation "Test" {
+                    plasma {
+                        density = 1e17;
+                }
+                "#
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_statement() {
+        assert!(parse_source(r#"simulation "Test" { plasma density = 1e17; }"#).is_err());
     }
 }
