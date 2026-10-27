@@ -1,0 +1,33 @@
+simulation "PWFA_Baseline" {
+    dimension = 2d_cartesian;
+
+    domain {
+        x = [-50, 50] um;
+        z = [-100, 100] um;
+        cells = [128, 512];
+    }
+
+    plasma "background" {
+        species = electron;
+        density = 1e17 cm^-3;
+        profile = uniform;
+    }
+
+    beam "driver" {
+        species = electron;
+        energy = 1 GeV;
+        charge = 100 pC;
+        sigma_r = 5 um;
+        sigma_z = 10 um;
+    }
+
+    solver {
+        model = electromagnetic_pic;
+        boundary = open;
+    }
+
+    diagnostics {
+        fields = [Ez, Ex, By];
+        interval = 20 steps;
+    }
+}
