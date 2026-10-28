@@ -172,3 +172,13 @@ Created out of a personal interest in particle accelerator physics, scientific c
 ## License
 
 A license has not yet been selected. Until one is added, the repository should not be assumed to grant open-source reuse or redistribution rights.
+
+
+## Documentation
+
+- [Language Reference](docs/language-reference.md)
+- [Compiler Architecture](docs/compiler-architecture.md)
+
+PWALang documentation is maintained alongside the compiler.
+Implemented features and planned features are documented separately.
+
