@@ -7,6 +7,13 @@ pub enum Token {
     RightBrace,
     Equals,
     Semicolon,
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    Caret,
+    LeftParen,
+    RightParen,
 }
 
 pub fn tokenize(source: &str) -> Result<Vec<Token>, String> {
@@ -90,6 +97,34 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, String> {
                 let value: String = chars[start..i].iter().collect();
                 tokens.push(Token::Identifier(value));
             }
+            '+' => {
+                tokens.push(Token::Plus);
+                i += 1;
+            }
+            '-' => {
+                tokens.push(Token::Minus);
+                i += 1;
+            }
+            '*' => {
+                tokens.push(Token::Star);
+                i += 1;
+            }
+            '/' => {
+                tokens.push(Token::Slash);
+                i += 1;
+            }
+            '^' => {
+                tokens.push(Token::Caret);
+                i += 1;
+            }
+            '(' => {
+                tokens.push(Token::LeftParen);
+                i += 1;
+            }
+            ')' => {
+                tokens.push(Token::RightParen);
+                i += 1;
+            }
             _ => {
                 return Err(format!("Unexpected character: {c}"));
             }
@@ -123,5 +158,30 @@ mod tests {
     #[test]
     fn rejects_unterminated_strings() {
         assert!(tokenize(r#""unfinished"#).is_err());
+    }
+
+    #[test]
+    fn test_arithmetic_tokens() {
+        let source = "10 + 20 * (3 - 1) / 2 ^ 2";
+
+        let tokens = tokenize(source).unwrap();
+
+        let expected = vec![
+            Token::Number(10.0),
+            Token::Plus,
+            Token::Number(20.0),
+            Token::Star,
+            Token::LeftParen,
+            Token::Number(3.0),
+            Token::Minus,
+            Token::Number(1.0),
+            Token::RightParen,
+            Token::Slash,
+            Token::Number(2.0),
+            Token::Caret,
+            Token::Number(2.0),
+        ];
+
+        assert_eq!(tokens, expected);
     }
 }
