@@ -93,7 +93,111 @@ There is no fixed syntactic nesting depth, although practical limits depend on a
 
 Block names are not yet checked against a scientific schema.
 
-## 5. Formal Grammar
+## 5. Arithmetic Operators (Experimental)
+
+PWALang Math v0.1 introduces lexical support for basic arithmetic operators. This is the first stage of implementing mathematical expressions for plasma wakefield accelerator simulation configurations.
+
+**Implementation status:** Arithmetic tokenization is implemented and tested. Arithmetic expression parsing, operator precedence, and numerical evaluation are not yet implemented.
+
+### 5.1 Supported Arithmetic Tokens
+
+The lexer currently recognizes the following operators:
+
+| Operator | Name | Example |
+|---|---|---|
+| `+` | Addition | `10 + 5` |
+| `-` | Subtraction | `10 - 5` |
+| `*` | Multiplication | `10 * 5` |
+| `/` | Division | `10 / 5` |
+| `^` | Exponentiation | `2 ^ 3` |
+| `(` | Left parenthesis | `(10 + 5)` |
+| `)` | Right parenthesis | `(10 + 5)` |
+
+These symbols are recognized as individual tokens. Their mathematical meaning will be implemented in subsequent compiler stages.
+
+### 5.2 Arithmetic Expressions (Planned)
+
+The following syntax illustrates the intended arithmetic expression system:
+
+```pwa
+simulation "Arithmetic_Test" {
+    addition = 10 + 5;
+    subtraction = 10 - 5;
+    multiplication = 10 * 5;
+    division = 10 / 5;
+    exponentiation = 2 ^ 3;
+    combined = (10 + 5) * 2;
+}
+```
+
+**Note:** These examples are not yet accepted by the current parser. They demonstrate the planned syntax rather than implemented functionality.
+
+### 5.3 Operator Precedence (Planned)
+
+Mathematical expressions will follow conventional operator precedence.
+
+| Precedence | Operators | Description |
+|---|---|---|
+| Highest | `()` | Parenthesized expressions |
+| 2 | `^` | Exponentiation |
+| 3 | Unary `+`, `-` | Positive and negative signs |
+| 4 | `*`, `/` | Multiplication and division |
+| Lowest | `+`, `-` | Addition and subtraction |
+
+Exponentiation is planned to be right-associative. For example, `2 ^ 3 ^ 2` will represent `2 ^ (3 ^ 2)`.
+
+The expression `-2 ^ 2` will represent `-(2 ^ 2)`.
+
+### 5.4 Scientific Notation
+
+PWALang already supports floating-point numeric literals using scientific notation.
+
+Examples:
+
+```pwa
+simulation "Scientific_Notation" {
+    density = 1e17;
+    small_value = 1e-3;
+    large_value = 2e+5;
+}
+```
+
+The lexer distinguishes exponent signs from arithmetic operators.
+
+For example:
+
+- `1e-3` is recognized as one numeric token.
+- `10 - 3` is recognized as a number, subtraction operator, and another number.
+
+Scientific notation is supported independently of arithmetic expression parsing.
+
+### 5.5 Expression Representation
+
+The compiler defines preliminary abstract syntax tree types for mathematical expressions:
+
+- `Expression::Number` represents a numeric literal.
+- `Expression::Binary` represents an operation between two expressions.
+- `Expression::Unary` represents an operation applied to one expression.
+- `BinaryOperator` defines addition, subtraction, multiplication, division, and exponentiation.
+- `UnaryOperator` defines unary plus and minus.
+
+These structures are currently preparatory and are not yet integrated into property parsing or evaluation.
+
+### 5.6 Planned Mathematical Extensions
+
+Future PWALang mathematics development may include:
+
+- Named variables and constants
+- Mathematical functions such as `sqrt()`, `sin()`, `cos()`, `exp()`, and `log()`
+- Calculus I: derivatives, limits, and integration
+- Calculus II: sequences, series, and numerical integration
+- Calculus III: vectors, gradients, divergence, curl, and multivariable operations
+- Physical unit and dimensional validation
+- Mathematical expressions for plasma density profiles and particle-beam configurations
+
+These capabilities remain proposals. Their exact syntax, numerical methods, and integration with simulation backends have not yet been specified.
+
+## 6. Formal Grammar
 
 The following EBNF summarizes the implemented parser structure:
 
@@ -108,7 +212,7 @@ value       = number | string ;
 
 Lexical details such as identifier characters, numeric formats, and string escaping are defined by the lexer implementation and will be specified more precisely as the language evolves.
 
-## 6. Syntax Errors
+## 7. Syntax Errors
 
 The parser rejects malformed structures.
 
@@ -136,7 +240,7 @@ simulation "Test" {}
 extra
 ```
 
-## 7. Syntax Versus Scientific Validity
+## 8. Syntax Versus Scientific Validity
 
 The following example is syntactically acceptable:
 
@@ -154,7 +258,7 @@ This distinction exists because the current parser validates grammar, not scient
 
 Future semantic validation will check supported blocks, property names, value types, physical dimensions, parameter constraints, and backend compatibility.
 
-## 8. Planned Language Features
+## 9. Planned Language Features
 
 The following features are proposals, not implemented syntax:
 
@@ -168,7 +272,7 @@ The following features are proposals, not implemented syntax:
 
 Language changes will be documented here as implementations and tests are added.
 
-## 9. Running the Current Compiler
+## 10. Running the Current Compiler
 
 From the nested Rust project directory:
 
