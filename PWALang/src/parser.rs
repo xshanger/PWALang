@@ -100,14 +100,47 @@ impl<'a> Parser<'a> {
         Ok(statements)
     }
 
+    fn parse_value(&mut self) -> Result<Value, String> {
+        let value = match self.current() {
+            Some(Token::Number(number)) => Value::Number(*number),
+
+            Some(Token::StringLiteral(text)) => Value::String(text.clone()),
+
+            other => {
+                return Err(format!("Expected number or string, found {other:?}"));
+            }
+        };
+
+        self.advance();
+        Ok(value)
+    }
+
+    fn parse_output(&mut self) -> Result<Statement, String> {
+        self.expect(&Token::Identifier("output".into()))?;
+        self.expect(&Token::LeftParen)?;
+
+        let value = self.parse_value()?;
+
+        self.expect(&Token::RightParen)?;
+        self.expect(&Token::Semicolon)?;
+
+        Ok(Statement::Output(value))
+    }
+
     fn parse_statement(&mut self) -> Result<Statement, String> {
         match self.peek() {
             Some(Token::Equals) => Ok(Statement::Property(self.parse_property()?)),
 
             Some(Token::LeftBrace) => Ok(Statement::Block(self.parse_block()?)),
 
+            Some(Token::LeftParen) => match self.current() {
+                Some(Token::Identifier(name)) if name == "output" => self.parse_output(),
+
+                other => Err(format!("Unknown function or statement: {other:?}")),
+            },
+
             other => Err(format!(
-                "Expected '=' or '{{' after identifier, found {other:?}"
+                "Expected '=', '{{', or '(' after identifier, found {other:?}"
             )),
         }
     }
@@ -185,6 +218,46 @@ mod tests {
                 value: Value::Number(1e17),
             })
         );
+    }
+
+    #[test]
+    fn parses_string_output() {
+        let simulation = parse_source(r#"simulation "Test" { output("Hello"); }"#).unwrap();
+
+        assert_eq!(
+            simulation.statements[0],
+            Statement::Output(Value::String("Hello".into()))
+        );
+    }
+
+    #[test]
+    fn parses_numeric_output() {
+        let simulation = parse_source(r#"simulation "Test" { output(42); }"#).unwrap();
+
+        assert_eq!(
+            simulation.statements[0],
+            Statement::Output(Value::Number(42.0))
+        );
+    }
+
+    #[test]
+    fn rejects_empty_output() {
+        assert!(parse_source(r#"simulation "Test" { output(); }"#).is_err());
+    }
+
+    #[test]
+    fn rejects_output_expression_for_now() {
+        assert!(parse_source(r#"simulation "Test" { output(10 + 20); }"#).is_err());
+    }
+
+    #[test]
+    fn rejects_multiple_output_arguments() {
+        assert!(parse_source(r#"simulation "Test" { output("A", "B"); }"#).is_err());
+    }
+
+    #[test]
+    fn rejects_unknown_function() {
+        assert!(parse_source(r#"simulation "Test" { mystery(42); }"#).is_err());
     }
 
     #[test]

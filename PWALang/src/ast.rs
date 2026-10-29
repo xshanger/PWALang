@@ -8,6 +8,7 @@ pub struct Simulation {
 pub enum Statement {
     Property(Property),
     Block(Block),
+    Output(Value),
 }
 
 #[derive(Debug, PartialEq)]

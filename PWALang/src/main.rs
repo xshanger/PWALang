@@ -1,24 +1,29 @@
 mod ast;
 mod lexer;
 mod parser;
+mod runtime;
 
 use lexer::tokenize;
 use parser::parse;
+use runtime::execute;
 
 fn main() {
     let source = r#"
-    simulation "PWFA_Test" {
+    simulation "Output_Test" {
+        output("Hello, PWALang!");
+        output(42);
+        output(1e17);
+
         plasma {
             density = 1e17;
+            output("Plasma configuration loaded");
         }
 
         beam {
             energy = 1.0;
+            output("Beam configuration loaded");
         }
     }"#;
-
-    println!("PWALang Compiler v0.1.0");
-    println!("------------------------");
 
     let tokens = match tokenize(source) {
         Ok(tokens) => tokens,
@@ -28,14 +33,13 @@ fn main() {
         }
     };
 
-    match parse(&tokens) {
-        Ok(simulation) => {
-            println!("Parsing successful!");
-            println!("{simulation:#?}");
-        }
+    let simulation = match parse(&tokens) {
+        Ok(simulation) => simulation,
         Err(error) => {
             eprintln!("Parser error: {error}");
             std::process::exit(1);
         }
-    }
+    };
+
+    execute(&simulation);
 }
