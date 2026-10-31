@@ -2,13 +2,13 @@
 
 ### A Domain-Specific Language for Plasma Wakefield Accelerator Simulations
 
-**PWALang** is an experimental, open-source domain-specific language (DSL) designed to simplify the definition, configuration, and portability of plasma wakefield accelerator (PWFA) simulations.
+**PWALang** is an experimental, publicly developed domain-specific language (DSL) designed to simplify the definition, configuration, and portability of plasma wakefield accelerator (PWFA) simulations.
 
-The long-term goal is to provide a unified interface through which researchers and students can describe accelerator simulation experiments without having to rewrite their configurations for every supported simulation engine.
+The long-term goal is to provide a unified interface through which researchers and students can describe accelerator simulation experiments without having to rewrite configurations for every compatible simulation engine.
 
-PWALang is being developed in **Rust**, with an emphasis on compiler architecture, scientific correctness, extensibility, and reproducibility.
+PWALang is developed in **Rust**, emphasizing compiler architecture, scientific correctness, extensibility, and reproducibility.
 
-> **Project Status:** Early development. PWALang currently provides an experimental lexer, parser, and abstract syntax tree (AST). It is not yet capable of running plasma simulations.
+> **Project Status — Early Development (v0.1):** PWALang currently supports lexical analysis, recursive-descent parsing, abstract syntax tree (AST) generation, nested simulation blocks, literal console output, and loading external `.pwa` files. It cannot yet execute plasma simulations.
 
 ## Why I Created PWALang
 
@@ -34,7 +34,7 @@ I am developing PWALang independently, driven by curiosity and a long-term ambit
 
 PWALang aims to separate the scientific description of a simulation from the implementation details of individual simulation engines.
 
-The proposed architecture is:
+The proposed scientific compilation architecture is:
 
 ```text
 PWALang Source (.pwa)
@@ -55,59 +55,129 @@ Semantic & Dimensional Validation
 PWALang Intermediate Representation (PWIR)
         |
         v
-  Backend Adapters
+ Backend Adapters
         |
-        +----> WarpX
+        +----> WarpX (initial target)
         |
         +----> HiPACE++ (planned)
         |
         +----> FBPIC (planned)
 ```
 
-The intermediate representation is intended to describe simulation parameters independently of any particular backend.
+The intermediate representation is intended to describe validated simulation parameters independently of any particular backend.
 
-However, different simulation engines use different physical approximations, numerical methods, and supported features. PWALang will need to explicitly validate backend compatibility rather than assume that all simulation configurations are interchangeable.
+Different simulation engines use different physical approximations, numerical methods, and supported features. PWALang must explicitly validate backend compatibility rather than assume that all simulation configurations are interchangeable.
+
+**The semantic validation, PWIR, backend adapters, and simulation execution stages are not yet implemented.**
+
+### Current Execution Pipeline
+
+The currently implemented development pipeline is:
+
+```text
+External .pwa File
+        |
+        v
+Command-Line Interface
+        |
+        v
+   File Loading
+        |
+        v
+      Lexer
+        |
+        v
+      Parser
+        |
+        v
+       AST
+        |
+        v
+Console Output Runtime
+        |
+        v
+ Terminal Output
+```
+
+The console runtime provides basic output functionality for testing the language. It is not a plasma simulation engine.
+
+## Current Language Features
+
+| Feature | Status |
+|---|---|
+| Lexical analysis | Implemented |
+| Numeric and string literals | Implemented |
+| Scientific notation | Implemented |
+| Simulation declarations | Implemented |
+| Property assignments | Implemented |
+| Nested configuration blocks | Implemented |
+| Arithmetic operator tokenization | Implemented |
+| Preliminary mathematical expression AST types | Defined, not yet integrated |
+| Console `output()` statement | Implemented for literals |
+| External `.pwa` file loading | Implemented |
+| Command-line execution | Implemented |
+| Arithmetic expression parsing | Planned |
+| Arithmetic evaluation | Planned |
+| Variable references | Planned |
+| Physical units and dimensional validation | Planned |
+| Scientific simulation execution | Planned |
 
 ## Example Syntax
 
-An experimental PWALang configuration:
+PWALang currently supports the following program:
 
-```text
+```pwa
 simulation "PWFA_Test" {
+    output("Starting PWALang!");
+
     plasma {
         density = 1e17;
+        output("Plasma configuration loaded");
     }
 
     beam {
         energy = 1.0;
+        output("Beam configuration loaded");
     }
 }
 ```
 
-The current compiler can parse this nested structure into an abstract syntax tree.
+The program can be parsed into an AST and its `output()` statements executed.
 
-The example is not yet a physically validated simulation configuration. Physical units, parameter constraints, and solver-specific compatibility checks are planned features.
+Expected terminal output:
 
-## Development Roadmap
+```text
+Starting PWALang!
+Plasma configuration loaded
+Beam configuration loaded
+```
 
-| Stage | Description | Status |
-|---|---|---|
-| 1 | Rust project foundation and lexer | Complete |
-| 2 | Initial parser and AST | Complete |
-| 3 | Nested simulation blocks | In progress |
-| 4 | Physical units and semantic validation | Planned |
-| 5 | Solver-independent intermediate representation (PWIR) | Planned |
-| 6 | WarpX backend integration | Planned |
-| 7 | Scientific validation and reproducibility testing | Planned |
-| 8 | Additional simulation backends | Future |
+The `plasma` and `beam` blocks are currently syntactic structures. Their properties are not yet scientifically validated or passed to a simulation solver.
 
-## Technology
+### Arithmetic Support
 
-- **Language:** Rust
-- **Compiler architecture:** Lexer, parser, AST, semantic analysis, intermediate representation
-- **Simulation domain:** Plasma wakefield acceleration and particle-in-cell simulation
-- **Initial target backend:** WarpX through its Python PICMI interface
-- **Development environment:** Visual Studio Code and GitHub Codespaces
+PWALang recognizes these arithmetic operators:
+
+| Operator | Operation |
+|---|---|
+| `+` | Addition |
+| `-` | Subtraction |
+| `*` | Multiplication |
+| `/` | Division |
+| `^` | Exponentiation |
+| `()` | Parentheses |
+
+These operators are currently recognized by the lexer.
+
+The following is **planned syntax**, not yet executable:
+
+```pwa
+simulation "Math_Test" {
+    output(10 + 20 * 3);
+}
+```
+
+Future expression parsing and evaluation will enable mathematical operations with appropriate precedence and error handling.
 
 ## Getting Started
 
@@ -115,45 +185,130 @@ The example is not yet a physically validated simulation configuration. Physical
 
 Install the Rust toolchain using [rustup](https://rustup.rs/).
 
-### Clone the repository
+You can develop PWALang using Visual Studio Code, GitHub Codespaces, or another Rust-compatible development environment.
+
+### Clone the Repository
 
 ```bash
 git clone https://github.com/xshanger/PWALang.git
 cd PWALang/PWALang
 ```
 
-### Run the compiler
+The Rust project is currently located inside the repository's nested `PWALang/` directory.
 
-```bash
-cargo run
+### Create a PWALang Program
+
+Create a file named `examples/hello.pwa` inside the Rust project directory:
+
+```pwa
+simulation "My_First_Program" {
+    output("Hello from PWALang!");
+    output(42);
+
+    plasma {
+        density = 1e17;
+        output("Plasma configured!");
+    }
+}
 ```
 
-### Run automated tests
+### Run a `.pwa` File
+
+From the Rust project directory:
+
+```bash
+cargo run -- examples/hello.pwa
+```
+
+Expected output:
+
+```text
+Hello from PWALang!
+42
+Plasma configured!
+```
+
+The `--` separates Cargo's arguments from the file path passed to PWALang.
+
+Alternatively, build the executable:
+
+```bash
+cargo build
+```
+
+Then execute the program directly:
+
+```bash
+./target/debug/pwalang examples/hello.pwa
+```
+
+The current command-line interface expects exactly one `.pwa` file path.
+
+### Run Automated Tests
 
 ```bash
 cargo test
 ```
 
-### Format the source code
+The latest reported test run passed **19 tests**, covering lexical analysis, parsing, nested blocks, output statements, malformed syntax, and runtime output ordering.
+
+External file-loading integration tests have not yet been added.
+
+### Format Rust Source Code
 
 ```bash
 cargo fmt
 ```
 
-At this stage, the executable parses an example embedded in the Rust source code. Loading external `.pwa` files through a command-line interface is planned.
+### Visual Studio Code Support
+
+PWALang source files use the `.pwa` extension.
+
+VS Code can open and edit these files. Basic syntax highlighting can be configured through file associations, although a dedicated PWALang language extension has not yet been developed.
+
+The compiler can be executed through VS Code's integrated terminal or a configured build task.
+
+Future editor integration may include dedicated syntax highlighting, code completion, diagnostics, and language-server support.
+
+## Development Roadmap
+
+| Stage | Description | Status |
+|---|---|---|
+| 1 | Rust project foundation and lexer | Complete |
+| 2 | Initial parser and AST | Complete |
+| 3 | Nested simulation blocks | Complete |
+| 4 | Basic console output runtime | Complete |
+| 5 | External `.pwa` file loading and CLI | Implemented; integration testing pending |
+| 6 | Arithmetic expression parsing and evaluation | In progress — lexer and preliminary AST |
+| 7 | Physical units and semantic validation | Planned |
+| 8 | Solver-independent intermediate representation (PWIR) | Planned |
+| 9 | WarpX backend integration | Planned |
+| 10 | Scientific validation and reproducibility testing | Planned |
+| 11 | Additional simulation backends | Future |
+
+## Technology
+
+- **Implementation language:** Rust
+- **Compiler architecture:** Lexer, recursive-descent parser, AST, planned semantic analysis and intermediate representation
+- **Current runtime:** Literal console output
+- **Simulation domain:** Plasma wakefield acceleration and particle-in-cell simulation
+- **Initial target backend:** WarpX, potentially through its Python PICMI interface
+- **Development environment:** Visual Studio Code and GitHub Codespaces
+- **Version control:** Git and GitHub
 
 ## Long-Term Goals
 
-The project is intended to explore several possibilities:
+PWALang is intended to explore several possibilities:
 
 1. A readable and expressive language for defining plasma accelerator experiments.
 2. Unit-aware configuration validation to reduce common scientific input errors.
 3. A solver-independent intermediate representation for compatible simulation models.
 4. Backend adapters for established plasma simulation engines.
 5. Reproducible simulation configurations suitable for research and education.
-6. A foundation for future accelerator simulation tooling and scientific workflows.
+6. Mathematical expression support for scientific parameters and plasma profiles.
+7. Developer tooling for authoring, validating, and executing `.pwa` configurations.
 
-These are development goals, not currently implemented capabilities.
+These are development goals, not currently implemented scientific capabilities.
 
 ## Contributing
 
@@ -163,6 +318,24 @@ Suggestions, bug reports, technical discussions, and contributions are welcome a
 
 If you are interested in compiler development, plasma physics, accelerator science, or scientific computing, feel free to open a GitHub issue.
 
+Before submitting code changes, contributors should run:
+
+```bash
+cargo fmt
+cargo test
+```
+
+Language changes should include appropriate tests and documentation updates.
+
+## Documentation
+
+- [Language Reference](docs/language-reference.md)
+- [Compiler Architecture](docs/compiler-architecture.md)
+
+PWALang documentation is maintained alongside the compiler.
+
+Implemented features and planned features are documented separately.
+
 ## Author
 
 Developed by **xshanger**.
@@ -171,14 +344,6 @@ Created out of a personal interest in particle accelerator physics, scientific c
 
 ## License
 
-A license has not yet been selected. Until one is added, the repository should not be assumed to grant open-source reuse or redistribution rights.
+A license has not yet been selected.
 
-
-## Documentation
-
-- [Language Reference](docs/language-reference.md)
-- [Compiler Architecture](docs/compiler-architecture.md)
-
-PWALang documentation is maintained alongside the compiler.
-Implemented features and planned features are documented separately.
-
+Although the source code is publicly accessible, the repository should not be assumed to grant permission for reuse, modification, or redistribution until an appropriate license is added.
