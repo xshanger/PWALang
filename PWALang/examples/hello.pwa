@@ -1,0 +1,9 @@
+simulation "My_First_Program" {
+    output("Hello from a real .pwa file!");
+    output(42);
+
+    plasma {
+        density = 1e17;
+        output("Plasma configured!");
+    }
+}
